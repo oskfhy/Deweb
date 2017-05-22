@@ -1,142 +1,55 @@
 <?php
     class authCode {
-        public $ttl;//µ½ÆÚÊ±¼ä Ê±¼ä¸ñÊ½£º20120101(ÄêÔÂÈÕ)
-        public $key_1;//ÃÜÔ¿1
-        public $key_2;//ÃÜÔ¿2
+        public $ttl;//åˆ°æœŸæ—¶é—´ æ—¶é—´æ ¼å¼ï¼š20120101(å¹´æœˆæ—¥)
+        public $key_1;//å¯†é’¥1
+        public $key_2;//å¯†é’¥2
         public $td;
-        public $ks;//ÃÜÔ¿µÄ³¤¶È
-        public $iv;//³õÊ¼ÏòÁ¿
-        public $salt;//ÑÎÖµ£¨Ä³¸öÌØ¶¨µÄ×Ö·û´®£©
-        public $encode;//¼ÓÃÜºóµÄĞÅÏ¢
-        public $return_array = array(); // ·µ»Ø´øÓĞMACµØÖ·µÄ×Ö´®Êı×é 
-        public $mac_addr;//macµØÖ·
-        public $filepath;//±£´æÃÜÎÄµÄÎÄ¼şÂ·¾¶
-        public function __construct(){
-            //»ñÈ¡ÎïÀíµØÖ·
-            $this->mac_addr=$this->getmac(PHP_OS);
-            $this->filepath="./licence.txt";
-            $this->ttl="20171121";//µ½ÆÚÊ±¼ä
-            $this->salt="~!@#$";//ÑÎÖµ£¬ÓÃÒÔÌá¸ßÃÜÎÄµÄ°²È«ĞÔ
-//            echo "<pre>".print_r(mcrypt_list_algorithms ())."</pre>";
-//            echo "<pre>".print_r(mcrypt_list_modes())."</pre>";
+        public $ks;//å¯†é’¥çš„é•¿åº¦
+        public $iv;//åˆå§‹å‘é‡
+        public $salt;//ç›å€¼ï¼ˆæŸä¸ªç‰¹å®šçš„å­—ç¬¦ä¸²ï¼‰
+        public $encode;//åŠ å¯†åçš„ä¿¡æ¯
+        public $return_array = array(); //è¿”å›å¸¦æœ‰MACåœ°å€çš„å­—ä¸²æ•°ç»„
+        public $mac_addr;//macåœ°å€
+        public $filepath;//ä¿å­˜å¯†æ–‡çš„æ–‡ä»¶è·¯å¾„
+        public function __construct($key=''){
+		$this->salt="~!@#$";
+		$this->key	=	$key;
         }
         /**
-         * ¶ÔÃ÷ÎÄĞÅÏ¢½øĞĞ¼ÓÃÜ
-         * @param $key ÃÜÔ¿
+         * å¯¹æ˜æ–‡ä¿¡æ¯è¿›è¡ŒåŠ å¯†
+         * @param $key å¯†é’¥
          */
-        public function encode($key) {
-            $this->td = mcrypt_module_open(MCRYPT_DES,'','ecb',''); //Ê¹ÓÃMCRYPT_DESËã·¨,ecbÄ£Ê½
-            $size=mcrypt_enc_get_iv_size($this->td);//ÉèÖÃ³õÊ¼ÏòÁ¿µÄ´óĞ¡
-            $this->iv = mcrypt_create_iv($size, MCRYPT_RAND);//´´½¨³õÊ¼ÏòÁ¿
-            $this->ks = mcrypt_enc_get_key_size($this->td);//·µ»ØËùÖ§³ÖµÄ×î´óµÄÃÜÔ¿³¤¶È£¨ÒÔ×Ö½Ú¼ÆËã£©
-            $this->key_1 = substr(md5(md5($key).$this->salt),0,$this->ks);
-            mcrypt_generic_init($this->td, $this->key_1, $this->iv); //³õÊ¼´¦Àí
-            //Òª±£´æµ½Ã÷ÎÄ
-            $con=$this->mac_addr.$this->ttl;
-            //¼ÓÃÜ
-            $this->encode = mcrypt_generic($this->td, $con);   
-            //½áÊø´¦Àí
+        public function encode($content) {
+            $this->td = mcrypt_module_open(MCRYPT_DES,'','ecb',''); //ä½¿ç”¨MCRYPT_DESç®—æ³•,ecbæ¨¡å¼
+            $size=mcrypt_enc_get_iv_size($this->td);//è®¾ç½®åˆå§‹å‘é‡çš„å¤§å°
+            $this->iv = mcrypt_create_iv($size, MCRYPT_RAND);//åˆ›å»ºåˆå§‹å‘é‡
+            $this->ks = mcrypt_enc_get_key_size($this->td);//è¿”å›æ‰€æ”¯æŒçš„æœ€å¤§çš„å¯†é’¥é•¿åº¦ï¼ˆä»¥å­—èŠ‚è®¡ç®—ï¼‰
+            $this->key_1 = substr(md5(md5($this->key).$this->salt),0,$this->ks);
+            mcrypt_generic_init($this->td, $this->key_1, $this->iv); //åˆå§‹å¤„ç†
+            $this->encode = base64_encode(mcrypt_generic($this->td, $content));
             mcrypt_generic_deinit($this->td);
-            //½«ÃÜÎÄ±£´æµ½ÎÄ¼şÖĞ
-            $this->savetofile();
+            return $this->encode;
         }
         /**
-         * ¶ÔÃÜÎÄ½øĞĞ½âÃÜ
-         * @param $key ÃÜÔ¿
+         * å¯¹å¯†æ–‡è¿›è¡Œè§£å¯†
+         * @param $key å¯†é’¥
          */
-        public function decode($key) {
+        public function decode($content) {
             try {
-                if (!file_exists($this->filepath)){
-                    throw new Exception("ÊÚÈ¨ÎÄ¼ş²»´æÔÚ");
-                }else{//Èç¹ûÊÚÈ¨ÎÄ¼ş´æÔÚµÄ»°£¬Ôò¶ÁÈ¡ÊÚÈ¨ÎÄ¼şÖĞµÄÃÜÎÄ
-                    $fp=fopen($this->filepath,'r');
-                    $secret=fread($fp,filesize($this->filepath)); 
-                    $this->key_2 = substr(md5(md5($key).$this->salt),0,$this->ks);
-                    //³õÊ¼½âÃÜ´¦Àí
+                    $secret=base64_decode($content); 
+                    $this->key_2 = substr(md5(md5($this->key).$this->salt),0,$this->ks);
                     mcrypt_generic_init($this->td, $this->key_2, $this->iv);
-                    //½âÃÜ
                     $decrypted = mdecrypt_generic($this->td, $secret);
-                    //½âÃÜºó,¿ÉÄÜ»áÓĞºóĞøµÄ\0,ĞèÈ¥µô   
                     $decrypted=trim($decrypted) . "\n";   
-                    //½áÊø
                     mcrypt_generic_deinit($this->td);   
                     mcrypt_module_close($this->td);
                     return $decrypted;        
-                }
             }catch (Exception $e){
                 echo $e->getMessage();
             }
         }
-        /**
-         * ½«ÃÜÎÄ±£´æµ½ÎÄ¼şÖĞ
-         */
-        public function savetofile(){
-            try {
-                $fp=fopen($this->filepath,'w+');
-                if (!$fp){
-                    throw new Exception("ÎÄ¼ş²Ù×÷Ê§°Ü");
-                }
-                fwrite($fp,$this->encode);
-                fclose($fp);
-            }catch (Exception $e){
-                echo $e->getMessage();
-            }
-        }
-        /**
-         * È¡µÃ·şÎñÆ÷µÄMACµØÖ·
-         */
-        public function getmac($os_type){ 
-             switch ( strtolower($os_type) ){ 
-                      case "linux": 
-                                $this->forLinux(); 
-                                break; 
-                      case "solaris": 
-                                break; 
-                      case "unix": 
-                                 break; 
-                       case "aix": 
-                                 break; 
-                       default: 
-                               $this->forWindows(); 
-                               break; 
-              }
-              $temp_array = array(); 
-              foreach( $this->return_array as $value ){
-                        if (preg_match("/[0-9a-f][0-9a-f][:-]"."[0-9a-f][0-9a-f][:-]"."[0-9a-f][0-9a-f][:-]"."[0-9a-f][0-9a-f][:-]"."[0-9a-f][0-9a-f][:-]"."[0-9a-f][0-9a-f]/i",$value,$temp_array )){
-                            $mac_addr = $temp_array[0]; 
-                            break; 
-                       }
-              }
-              unset($temp_array); 
-              return $mac_addr; 
-         }
-         /**
-          * windows·şÎñÆ÷ÏÂÖ´ĞĞipconfigÃüÁî
-          */
-         public function forWindows(){ 
-              @exec("ipconfig /all", $this->return_array); 
-              if ( $this->return_array ) 
-                       return $this->return_array; 
-              else{ 
-                       $ipconfig = $_SERVER["WINDIR"]."\system32\ipconfig.exe"; 
-                       if ( is_file($ipconfig) ) 
-                          @exec($ipconfig." /all", $this->return_array); 
-                       else 
-                          @exec($_SERVER["WINDIR"]."\system\ipconfig.exe /all", $this->return_array); 
-                       return $this->return_array; 
-              }
-         }
-         /**
-          * Linux·şÎñÆ÷ÏÂÖ´ĞĞifconfigÃüÁî
-          */
-         public function forLinux(){ 
-              @exec("ifconfig -a", $this->return_array); 
-              return $this->return_array; 
-         }
     }
-    $code=new authCode();
-    //¼ÓÃÜ
-    $code->encode("~!@#$%^");
-    //½âÃÜ
-    echo $code->decode("~!@#$%^");
+    $code=new authCode("This is key string");
+    echo $code->encode("yingjiechen");
+    echo $code->decode("gLDMdAJ9TJXSnnuH0q9FCQ==");
 ?>
